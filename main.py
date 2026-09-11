@@ -45,11 +45,13 @@ class WorkReminderApp:
         self.tracker = WorkTracker(
             work_limit_minutes=config.work_limit_minutes,
             break_threshold_minutes=config.break_threshold_minutes,
+            repeat_reminder_minutes=config.repeat_reminder_minutes,
         )
-        icon_path = Path(__file__).resolve().parent / "assets" / "icon.ico"
+        icon_path = Path(__file__).resolve().parent / "picuture_256x256.ico"
         icon = QIcon(str(icon_path)) if icon_path.exists() else application.style().standardIcon(
             QStyle.StandardPixmap.SP_ComputerIcon
         )
+        application.setWindowIcon(icon)
         self.tray = TrayController(icon, config)
         self.notifier = Notifier(self.tray.icon, config.notifications_enabled)
         self.timer = QTimer(self.application)
@@ -103,6 +105,7 @@ class WorkReminderApp:
         self.tracker.set_limits(
             work_limit_minutes=config.work_limit_minutes,
             break_threshold_minutes=config.break_threshold_minutes,
+            repeat_reminder_minutes=config.repeat_reminder_minutes,
         )
         self.notifier.set_enabled(config.notifications_enabled)
         self.tray.set_config(config)
@@ -113,6 +116,7 @@ class WorkReminderApp:
         config = Config(
             work_limit_minutes=self.config.work_limit_minutes,
             break_threshold_minutes=self.config.break_threshold_minutes,
+            repeat_reminder_minutes=self.config.repeat_reminder_minutes,
             launch_at_startup=self.config.launch_at_startup,
             notifications_enabled=enabled,
             poll_interval_seconds=self.config.poll_interval_seconds,
@@ -134,6 +138,7 @@ class WorkReminderApp:
             config = Config(
                 work_limit_minutes=self.config.work_limit_minutes,
                 break_threshold_minutes=self.config.break_threshold_minutes,
+                repeat_reminder_minutes=self.config.repeat_reminder_minutes,
                 launch_at_startup=enabled,
                 notifications_enabled=self.config.notifications_enabled,
                 poll_interval_seconds=self.config.poll_interval_seconds,
@@ -176,4 +181,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
