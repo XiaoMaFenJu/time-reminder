@@ -33,11 +33,15 @@ class WorkTracker:
         self,
         work_limit_minutes: float = 45,
         break_threshold_minutes: float = 5,
+        repeat_reminder_minutes: float = 10,
         active_threshold_seconds: float = 10,
     ) -> None:
         work_limit = self._finite_number(work_limit_minutes, "work_limit_minutes")
         break_threshold = self._finite_number(
             break_threshold_minutes, "break_threshold_minutes"
+        )
+        repeat_reminder = self._finite_number(
+            repeat_reminder_minutes, "repeat_reminder_minutes"
         )
         active_threshold = self._finite_number(
             active_threshold_seconds, "active_threshold_seconds"
@@ -47,16 +51,20 @@ class WorkTracker:
             raise ValueError("work_limit_minutes must be greater than zero")
         if break_threshold <= 0:
             raise ValueError("break_threshold_minutes must be greater than zero")
+        if repeat_reminder <= 0:
+            raise ValueError("repeat_reminder_minutes must be greater than zero")
         if active_threshold < 0:
             raise ValueError("active_threshold_seconds must not be negative")
 
         self.work_limit_seconds = work_limit * 60
         self.break_threshold_seconds = break_threshold * 60
+        self.repeat_reminder_seconds = repeat_reminder * 60
         self.active_threshold_seconds = active_threshold
 
         self._session_start: float | None = None
         self._last_active_time: float | None = None
-        self._reminded = False
+        self._last_reminder_at_seconds: float | None = None
+        self._next_reminder_at_seconds = self.work_limit_seconds
 
     def update(self, now: float, idle_seconds: float) -> TrackerEvent:
         """Apply one activity sample and return the resulting event.
@@ -75,7 +83,7 @@ class WorkTracker:
             if idle_value < self.active_threshold_seconds:
                 self._session_start = now_value
                 self._last_active_time = now_value
-                self._reminded = False
+                self._reset_reminder_schedule()
                 return TrackerEvent.SESSION_STARTED
             return TrackerEvent.NONE
 
@@ -88,14 +96,16 @@ class WorkTracker:
         if idle_value >= self.break_threshold_seconds:
             self._session_start = None
             self._last_active_time = None
-            self._reminded = False
+            self._reset_reminder_schedule()
             return TrackerEvent.SESSION_ENDED
 
-        if (
-            self.get_work_duration_seconds() >= self.work_limit_seconds
-            and not self._reminded
-        ):
-            self._reminded = True
+        work_duration = self.get_work_duration_seconds()
+        if work_duration >= self._next_reminder_at_seconds:
+            self._last_reminder_at_seconds = self._next_reminder_at_seconds
+            # A delayed poll emits at most one reminder instead of flooding
+            # the user with every interval missed while the app was paused.
+            while self._next_reminder_at_seconds <= work_duration:
+                self._next_reminder_at_seconds += self.repeat_reminder_seconds
             return TrackerEvent.REMINDER_DUE
 
         return TrackerEvent.NONE
@@ -108,7 +118,10 @@ class WorkTracker:
         return max(0.0, self._last_active_time - self._session_start)
 
     def set_limits(
-        self, work_limit_minutes: float, break_threshold_minutes: float
+        self,
+        work_limit_minutes: float,
+        break_threshold_minutes: float,
+        repeat_reminder_minutes: float,
     ) -> None:
         """Update limits without discarding the current session."""
 
@@ -116,17 +129,33 @@ class WorkTracker:
         break_threshold = self._finite_number(
             break_threshold_minutes, "break_threshold_minutes"
         )
+        repeat_reminder = self._finite_number(
+            repeat_reminder_minutes, "repeat_reminder_minutes"
+        )
         if work_limit <= 0:
             raise ValueError("work_limit_minutes must be greater than zero")
         if break_threshold <= 0:
             raise ValueError("break_threshold_minutes must be greater than zero")
+        if repeat_reminder <= 0:
+            raise ValueError("repeat_reminder_minutes must be greater than zero")
         self.work_limit_seconds = work_limit * 60
         self.break_threshold_seconds = break_threshold * 60
+        self.repeat_reminder_seconds = repeat_reminder * 60
+        if self._last_reminder_at_seconds is None:
+            self._next_reminder_at_seconds = self.work_limit_seconds
+        else:
+            self._next_reminder_at_seconds = (
+                self._last_reminder_at_seconds + self.repeat_reminder_seconds
+            )
 
     def is_working(self) -> bool:
         """Return whether a work session is currently active."""
 
         return self._session_start is not None
+
+    def _reset_reminder_schedule(self) -> None:
+        self._last_reminder_at_seconds = None
+        self._next_reminder_at_seconds = self.work_limit_seconds
 
     @staticmethod
     def _finite_number(value: float, name: str) -> float:

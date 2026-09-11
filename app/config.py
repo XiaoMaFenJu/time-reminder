@@ -20,6 +20,7 @@ class Config:
 
     work_limit_minutes: int = 45
     break_threshold_minutes: int = 5
+    repeat_reminder_minutes: int = 10
     launch_at_startup: bool = False
     notifications_enabled: bool = True
     poll_interval_seconds: int = 3
@@ -35,6 +36,10 @@ class Config:
             self.break_threshold_minutes, bool
         ) or not 1 <= self.break_threshold_minutes <= 120:
             raise ValueError("break_threshold_minutes must be an integer from 1 to 120")
+        if not isinstance(self.repeat_reminder_minutes, int) or isinstance(
+            self.repeat_reminder_minutes, bool
+        ) or not 1 <= self.repeat_reminder_minutes <= 480:
+            raise ValueError("repeat_reminder_minutes must be an integer from 1 to 480")
         if not isinstance(self.launch_at_startup, bool):
             raise ValueError("launch_at_startup must be a boolean")
         if not isinstance(self.notifications_enabled, bool):
@@ -52,6 +57,9 @@ class Config:
             work_limit_minutes=data.get("work_limit_minutes", cls.work_limit_minutes),
             break_threshold_minutes=data.get(
                 "break_threshold_minutes", cls.break_threshold_minutes
+            ),
+            repeat_reminder_minutes=data.get(
+                "repeat_reminder_minutes", cls.repeat_reminder_minutes
             ),
             launch_at_startup=data.get("launch_at_startup", cls.launch_at_startup),
             notifications_enabled=data.get(
@@ -116,4 +124,3 @@ def save_config(config: Config, path: Path | None = None) -> None:
     with config_path.open("w", encoding="utf-8") as file:
         json.dump(asdict(config), file, ensure_ascii=False, indent=2)
         file.write("\n")
-

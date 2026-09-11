@@ -28,7 +28,7 @@ class SettingsWindow(QDialog):
         super().__init__(parent)
         self.setWindowTitle("WorkReminder 设置")
         self.setModal(False)
-        self.resize(360, 180)
+        self.resize(380, 220)
         self._config = config
 
         self.work_limit = QSpinBox()
@@ -41,6 +41,11 @@ class SettingsWindow(QDialog):
         self.break_threshold.setSuffix(" 分钟")
         self.break_threshold.setValue(config.break_threshold_minutes)
 
+        self.repeat_reminder = QSpinBox()
+        self.repeat_reminder.setRange(1, 480)
+        self.repeat_reminder.setSuffix(" 分钟")
+        self.repeat_reminder.setValue(config.repeat_reminder_minutes)
+
         self.notifications = QCheckBox("启用提醒")
         self.notifications.setChecked(config.notifications_enabled)
         self.startup = QCheckBox("开机启动")
@@ -48,6 +53,7 @@ class SettingsWindow(QDialog):
 
         form = QFormLayout()
         form.addRow("连续工作提醒时间：", self.work_limit)
+        form.addRow("再次提醒间隔时间：", self.repeat_reminder)
         form.addRow("休息判定时间：", self.break_threshold)
 
         buttons = QDialogButtonBox(
@@ -68,6 +74,7 @@ class SettingsWindow(QDialog):
             self._config,
             work_limit_minutes=self.work_limit.value(),
             break_threshold_minutes=self.break_threshold.value(),
+            repeat_reminder_minutes=self.repeat_reminder.value(),
             notifications_enabled=self.notifications.isChecked(),
             launch_at_startup=self.startup.isChecked(),
         )
