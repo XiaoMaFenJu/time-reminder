@@ -34,21 +34,54 @@ def test_idle_at_break_threshold_ends_the_session() -> None:
     assert tracker.get_work_duration_seconds() == 0.0
 
 
-def test_reaching_work_limit_emits_one_reminder() -> None:
-    tracker = WorkTracker(work_limit_minutes=1)
+def test_reaching_work_limit_emits_initial_reminder() -> None:
+    tracker = WorkTracker(work_limit_minutes=1, repeat_reminder_minutes=10)
     tracker.update(now=0.0, idle_seconds=0.0)
 
     assert tracker.update(now=60.0, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
     assert tracker.update(now=61.0, idle_seconds=0.0) is TrackerEvent.NONE
 
 
-def test_a_session_does_not_remind_twice() -> None:
-    tracker = WorkTracker(work_limit_minutes=1)
+def test_a_session_does_not_repeat_before_the_interval() -> None:
+    tracker = WorkTracker(work_limit_minutes=1, repeat_reminder_minutes=10)
     tracker.update(now=0.0, idle_seconds=0.0)
     tracker.update(now=60.0, idle_seconds=0.0)
 
     for now in (120.0, 180.0, 240.0):
         assert tracker.update(now=now, idle_seconds=0.0) is TrackerEvent.NONE
+
+
+def test_reminder_repeats_at_each_configured_interval() -> None:
+    tracker = WorkTracker(work_limit_minutes=45, repeat_reminder_minutes=10)
+    tracker.update(now=0.0, idle_seconds=0.0)
+
+    assert tracker.update(now=45 * 60, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
+    assert tracker.update(now=55 * 60 - 1, idle_seconds=0.0) is TrackerEvent.NONE
+    assert tracker.update(now=55 * 60, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
+    assert tracker.update(now=65 * 60, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
+
+
+def test_delayed_poll_emits_only_one_repeat_reminder() -> None:
+    tracker = WorkTracker(work_limit_minutes=45, repeat_reminder_minutes=10)
+    tracker.update(now=0.0, idle_seconds=0.0)
+
+    assert tracker.update(now=75 * 60, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
+    assert tracker.update(now=75 * 60 + 1, idle_seconds=0.0) is TrackerEvent.NONE
+    assert tracker.update(now=85 * 60, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
+
+
+def test_repeat_interval_change_applies_to_the_current_session() -> None:
+    tracker = WorkTracker(work_limit_minutes=1, repeat_reminder_minutes=10)
+    tracker.update(now=0.0, idle_seconds=0.0)
+    assert tracker.update(now=60.0, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
+
+    tracker.set_limits(
+        work_limit_minutes=1,
+        break_threshold_minutes=5,
+        repeat_reminder_minutes=2,
+    )
+    assert tracker.update(now=179.0, idle_seconds=0.0) is TrackerEvent.NONE
+    assert tracker.update(now=180.0, idle_seconds=0.0) is TrackerEvent.REMINDER_DUE
 
 
 def test_a_new_session_can_remind_again() -> None:
@@ -87,6 +120,7 @@ def test_invalid_parameters_and_samples_are_rejected() -> None:
     for kwargs in (
         {"work_limit_minutes": 0},
         {"break_threshold_minutes": 0},
+        {"repeat_reminder_minutes": 0},
         {"active_threshold_seconds": -1},
     ):
         try:
@@ -104,4 +138,3 @@ def test_invalid_parameters_and_samples_are_rejected() -> None:
             pass
         else:
             raise AssertionError("invalid tracker samples should fail")
-
