@@ -13,13 +13,13 @@ WorkReminder 是一个 Windows 10/11 系统托盘工具，用于在用户连续�
 请使用项目指定的 Python 环境安装：
 
 ```powershell
-E:\ProgramData\anaconda3\envs\py313\python.exe -m pip install -r requirements.txt
+python.exe -m pip install -r requirements.txt
 ```
 
 ## 开发模式运行
 
 ```powershell
-E:\ProgramData\anaconda3\envs\py313\python.exe main.py
+python.exe main.py
 ```
 
 程序启动后默认不显示主窗口，只在系统托盘运行。配置文件和日志位于：
@@ -31,7 +31,7 @@ E:\ProgramData\anaconda3\envs\py313\python.exe main.py
 ## 测试
 
 ```powershell
-E:\ProgramData\anaconda3\envs\py313\python.exe -m pytest
+python.exe -m pytest
 ```
 
 ## 打包
@@ -39,7 +39,7 @@ E:\ProgramData\anaconda3\envs\py313\python.exe -m pytest
 在项目根目录执行：
 
 ```powershell
-E:\ProgramData\anaconda3\envs\py313\python.exe -m PyInstaller build/workreminder.spec
+python.exe -m PyInstaller build/workreminder.spec
 ```
 
 输出目标为 `dist\workreminder_v1.exe`。程序的 EXE、托盘和设置窗口图标均使用项目根目录下的 `picuture_256x256.ico`；文件不存在时会回退到 Qt 默认图标。
@@ -62,7 +62,7 @@ E:\ProgramData\anaconda3\envs\py313\python.exe -m PyInstaller build/workreminder
 
 ## 许可证
 
-本项目采用 MIT 许可证，详见 [LICENSE](LICENSE)。发布前请将其中的版权人占位文字替换为实际姓名或组织名称。
+本项目采用 MIT 许可证，详见 [LICENSE](LICENSE)。
 
 ## 致谢
 
