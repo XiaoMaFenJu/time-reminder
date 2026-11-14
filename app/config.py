@@ -24,6 +24,7 @@ class Config:
     launch_at_startup: bool = False
     notifications_enabled: bool = True
     poll_interval_seconds: int = 3
+    blackhole_enabled: bool = False
 
     def validate(self) -> None:
         """Validate settings and raise ``ValueError`` for invalid values."""
@@ -44,6 +45,8 @@ class Config:
             raise ValueError("launch_at_startup must be a boolean")
         if not isinstance(self.notifications_enabled, bool):
             raise ValueError("notifications_enabled must be a boolean")
+        if not isinstance(self.blackhole_enabled, bool):
+            raise ValueError("blackhole_enabled must be a boolean")
         if not isinstance(self.poll_interval_seconds, int) or isinstance(
             self.poll_interval_seconds, bool
         ) or not 1 <= self.poll_interval_seconds <= 60:
@@ -65,6 +68,7 @@ class Config:
             notifications_enabled=data.get(
                 "notifications_enabled", cls.notifications_enabled
             ),
+            blackhole_enabled=data.get("blackhole_enabled", cls.blackhole_enabled),
             poll_interval_seconds=data.get(
                 "poll_interval_seconds", cls.poll_interval_seconds
             ),

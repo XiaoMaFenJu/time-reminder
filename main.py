@@ -12,6 +12,7 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox, QStyle
 
 from app.activity import get_idle_seconds
+from app.blackhole import BlackHoleOverlay
 from app.config import Config, get_config_dir, get_log_path, load_config, save_config
 from app.notifier import Notifier
 from app.settings_window import SettingsWindow
@@ -53,6 +54,7 @@ class WorkReminderApp:
         )
         application.setWindowIcon(icon)
         self.tray = TrayController(icon, config)
+        self.blackhole = BlackHoleOverlay()
         self.notifier = Notifier(self.tray.icon, config.notifications_enabled)
         self.timer = QTimer(self.application)
         self.timer.timeout.connect(self._poll)
@@ -84,8 +86,17 @@ class WorkReminderApp:
             LOGGER.info("Work reminder triggered")
             self.notifier.show_reminder(self.tracker.get_work_duration_seconds())
 
+        self._update_blackhole()
         self.tray.update_status(
             self.tracker.is_working(), self.tracker.get_work_duration_seconds()
+        )
+
+    def _update_blackhole(self) -> None:
+        self.blackhole.set_work_state(
+            self.config.blackhole_enabled,
+            self.tracker.is_working(),
+            self.tracker.get_work_duration_seconds(),
+            self.tracker.work_limit_seconds,
         )
 
     def open_settings(self) -> None:
@@ -110,6 +121,7 @@ class WorkReminderApp:
         self.notifier.set_enabled(config.notifications_enabled)
         self.tray.set_config(config)
         self.timer.setInterval(config.poll_interval_seconds * 1000)
+        self._update_blackhole()
         LOGGER.info("Configuration modified")
 
     def _toggle_notifications(self, enabled: bool) -> None:
@@ -120,6 +132,7 @@ class WorkReminderApp:
             launch_at_startup=self.config.launch_at_startup,
             notifications_enabled=enabled,
             poll_interval_seconds=self.config.poll_interval_seconds,
+            blackhole_enabled=self.config.blackhole_enabled,
         )
         try:
             save_config(config)
@@ -142,6 +155,7 @@ class WorkReminderApp:
                 launch_at_startup=enabled,
                 notifications_enabled=self.config.notifications_enabled,
                 poll_interval_seconds=self.config.poll_interval_seconds,
+            blackhole_enabled=self.config.blackhole_enabled,
             )
             save_config(config)
         except Exception as exc:
@@ -154,6 +168,7 @@ class WorkReminderApp:
     def quit(self) -> None:
         LOGGER.info("WorkReminder exiting")
         self.timer.stop()
+        self.blackhole.close()
         self.tray.hide()
         self.application.quit()
 

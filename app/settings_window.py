@@ -48,6 +48,9 @@ class SettingsWindow(QDialog):
 
         self.notifications = QCheckBox("启用提醒")
         self.notifications.setChecked(config.notifications_enabled)
+        self.blackhole = QCheckBox("启用超时黑洞")
+        self.blackhole.setToolTip("超过连续工作提醒时间后出现，15 分钟内逐渐变大；休息达到判定时间后消失。")
+        self.blackhole.setChecked(config.blackhole_enabled)
         self.startup = QCheckBox("开机启动")
         self.startup.setChecked(config.launch_at_startup)
 
@@ -66,6 +69,7 @@ class SettingsWindow(QDialog):
         layout = QVBoxLayout(self)
         layout.addLayout(form)
         layout.addWidget(self.notifications)
+        layout.addWidget(self.blackhole)
         layout.addWidget(self.startup)
         layout.addWidget(buttons)
 
@@ -76,6 +80,7 @@ class SettingsWindow(QDialog):
             break_threshold_minutes=self.break_threshold.value(),
             repeat_reminder_minutes=self.repeat_reminder.value(),
             notifications_enabled=self.notifications.isChecked(),
+            blackhole_enabled=self.blackhole.isChecked(),
             launch_at_startup=self.startup.isChecked(),
         )
         try:
